@@ -1,0 +1,38 @@
+Data Cleaning Notes
+
+✅ Remove graduate level courses
+    - Courses with associatedAcademicCareer GRD 
+
+✅ Remove capstone courses
+    - Courses with "capstone" or "design project" in their name
+
+- Remove capstone prereq courses
+    - Courses listed as prereqs in the requirementsDescription of capstone courses 
+
+✅ Remove pd, work term report, and co-op courses
+    - Courses with subject "PD", "WKRPT", and "COOP"
+
+✅ Remove courses that do not provide a credit
+    - Courses with gradingBasis "NON", "XTR", "NGD"
+
+✅ Add column to indicate whether a course is pass/fail
+    - Courses with gradingBasis "CNC", "NGP", "CNT", "CNW", "CNP", "DRN", "CUR"
+
+
+General Notes
+
+- The grading basis PXX requires a minimum grade of XX% to pass
+
+- Definitions for unfamiliar components:
+    - RDG: reading, self directed
+    - PRA: practicum/apprenticeship (usually mentioned in title)
+    - WSP: workshop
+    - ESS: independent study
+    - DIS: discussion
+    - ENS: ensemble (music courses)
+    - FLT: flight (aviation courses)
+
+
+Questions:
+    - What is grading basis NAN?
+    - What courses are restricted to certain students?

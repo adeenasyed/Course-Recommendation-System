@@ -8,7 +8,7 @@ https://uwaterloo.ca/api/
 https://openapi.data.uwaterloo.ca/api-docs/index.html
 """
 
-from typing import List
+from typing import List, Set
 import requests
 from dataclasses import dataclass
 import sqlite3
@@ -16,6 +16,7 @@ from contextlib import contextmanager
 import os
 from dotenv import load_dotenv
 import logging
+import re
 
 load_dotenv()
 API_KEY = os.getenv('API_KEY')
@@ -27,17 +28,18 @@ logger = logging.getLogger(__name__)
 class Course:
     subject: str
     catalog_number: str
-    academic_career: str
     title: str
-    description: str = ""
-    grading_basis: str = ""
-    component: str = ""
-    enrollment_consent_required: int = 0
-    requirements_description: str = "" # PARSE THIS INTO LISTS OF PREREQS, ANTIREQS, AND COREQS
-    full_code: str = ""
+    description: str
+    component: str
+    grading_basis: str
+    requirements_description: str # PARSE THIS INTO LISTS OF PREREQS, ANTIREQS, AND COREQS
+    academic_career: str
+    code: str = ""
+    is_pass_fail: int = 0
     
     def __post_init__(self):
-        self.full_code = f"{self.subject} {self.catalog_number}"
+        self.code = f"{self.subject} {self.catalog_number}"
+        self.is_pass_fail = self.grading_basis in ["CNC", "NGP", "CNT", "CNW", "CNP", "DRN", "CUR"]
 
 class Database:
     def __init__(self, db_path: str = "waterloo_courses.db"):
@@ -65,16 +67,14 @@ class Database:
             conn.execute("DROP TABLE IF EXISTS courses")    
             conn.execute("""
                 CREATE TABLE courses (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    code TEXT PRIMARY KEY,
                     subject TEXT NOT NULL,
                     catalog_number TEXT NOT NULL,
-                    full_code TEXT UNIQUE NOT NULL,
-                    academic_career TEXT NOT NULL,
                     title TEXT NOT NULL,
-                    description TEXT NOT NULL,
-                    grading_basis TEXT NOT NULL,
+                    description TEXT,
                     component TEXT NOT NULL,
-                    enrollment_consent_required INTEGER DEFAULT 0,
+                    grading_basis TEXT NOT NULL,
+                    is_pass_fail INTEGER DEFAULT 0,
                     requirements_description TEXT,
                     UNIQUE(subject, catalog_number)
                 )
@@ -101,30 +101,67 @@ class Database:
             try:
                 course_batch = [
                     (
+                        course.code,
                         course.subject,
                         course.catalog_number,
-                        course.full_code,
-                        course.academic_career,
                         course.title,
-                        course.description,
-                        course.grading_basis,
+                        course.description if course.description else None,
                         course.component,
-                        course.enrollment_consent_required,
-                        course.requirements_description or ""
+                        course.grading_basis,
+                        course.is_pass_fail,
+                        course.requirements_description if course.requirements_description else None,
                     )
                     for course in courses
                 ]
                 
                 conn.executemany("""
                     INSERT INTO courses 
-                    (subject, catalog_number, full_code, academic_career, title, description,
-                    grading_basis, component, enrollment_consent_required, requirements_description)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (code, subject, catalog_number, title, description, component, grading_basis, is_pass_fail, requirements_description)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, course_batch)
                 conn.commit()
                 logger.info(f"Inserted {len(courses)} courses")
             except sqlite3.Error as e:
                 logger.error(f"Error inserting courses: {e}")
+
+class Filter:
+    @staticmethod
+    def is_graduate_course(course: Course) -> bool:
+        return course.academic_career == "GRD"
+    
+    @staticmethod
+    def is_capstone_course(course: Course) -> bool:
+        title_lower = course.title.lower()
+        return "capstone" in title_lower or "design project" in title_lower
+    
+    @staticmethod
+    def is_excluded_subject(course: Course) -> bool:
+        return course.subject in ["PD", "WKRPT", "COOP"]
+    
+    @staticmethod
+    def is_non_credit_course(course: Course) -> bool:
+        return course.grading_basis in ["NON", "XTR", "NGD"]
+    
+    @staticmethod
+    def filter_courses(courses: List[Course]) -> List[Course]:
+        filtered_courses = []
+
+        for course in courses:
+            if Filter.is_graduate_course(course):
+                continue
+                
+            if Filter.is_capstone_course(course):
+                continue
+                
+            if Filter.is_excluded_subject(course):
+                continue
+                
+            if Filter.is_non_credit_course(course):
+                continue
+            
+            filtered_courses.append(course)
+        
+        return filtered_courses
 
 class DataFetcher:
     def __init__(self):
@@ -183,24 +220,23 @@ class DataFetcher:
             courses = []
             if isinstance(data, list):
                 for course_data in data:
-                    consent_desc = course_data.get('enrollConsentDescription', '')
-                    consent_req = 0 if consent_desc == "No Consent Required" else 1
-                    
                     course = Course(
                         subject=course_data.get('subjectCode', ''),
                         catalog_number=course_data.get('catalogNumber', ''),
                         title=course_data.get('title', ''),
                         description=course_data.get('description', ''),
-                        academic_career=course_data.get('associatedAcademicCareer', ''),
-                        grading_basis=course_data.get('gradingBasis', ''),
                         component=course_data.get('courseComponentCode', ''),
-                        enrollment_consent_required=consent_req,
-                        requirements_description=course_data.get('requirementsDescription', '')
+                        grading_basis=course_data.get('gradingBasis', ''),
+                        requirements_description=course_data.get('requirementsDescription', ''),
+                        academic_career=course_data.get('associatedAcademicCareer', ''),
                     )
                     courses.append(course)
             
-            logger.info(f"Retrieved {len(courses)} courses for term {term_name} ({term_id})")
-            return courses
+            filtered_courses = Filter.filter_courses(courses)
+
+            logger.info(f"Retrieved {len(filtered_courses)} courses for term {term_name} ({term_id})")
+
+            return filtered_courses
         
         except Exception as e:
             logger.error(f"Error fetching courses for term {term_name} ({term_id}): {e}")
