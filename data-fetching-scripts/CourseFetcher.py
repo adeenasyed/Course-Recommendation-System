@@ -8,7 +8,7 @@ https://uwaterloo.ca/api/
 https://openapi.data.uwaterloo.ca/api-docs/index.html
 """
 
-from typing import List, Set
+from typing import List
 import requests
 from dataclasses import dataclass
 import sqlite3
@@ -16,7 +16,6 @@ from contextlib import contextmanager
 import os
 from dotenv import load_dotenv
 import logging
-import re
 
 load_dotenv()
 API_KEY = os.getenv('API_KEY')
@@ -42,7 +41,7 @@ class Course:
         self.is_pass_fail = self.grading_basis in ["CNC", "NGP", "CNT", "CNW", "CNP", "DRN", "CUR"]
 
 class Database:
-    def __init__(self, db_path: str = "waterloo_courses.db"):
+    def __init__(self, db_path: str = "course_recommendation_system.db"):
         self.db_path = db_path
         self.create_tables()
     

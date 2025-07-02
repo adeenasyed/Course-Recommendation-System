@@ -35,4 +35,3 @@ General Notes
 
 Questions:
     - What is grading basis NAN?
-    - What courses are restricted to certain students?

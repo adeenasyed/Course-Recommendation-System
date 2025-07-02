@@ -23,7 +23,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 class Database:
-    def __init__(self, db_path: str = "waterloo_courses.db"):
+    def __init__(self, db_path: str = "course_recommendation_system.db"):
         self.db_path = db_path
         self.create_table()
     
@@ -54,7 +54,7 @@ class Database:
                         subject.get('code', ''),
                         subject.get('description', '')
                     )
-                    for subject in subjects
+                    for subject in subjects if subject.get('code') not in ["PD", "WKRPT", "COOP"]
                 ]
                 
                 conn.executemany("""
@@ -109,7 +109,7 @@ def main():
     
     dataFetcher.fetch_and_store_subjects(db)
     
-    print(f"\nDatabase saved as 'waterloo_courses.db'")
+    print(f"\nDatabase saved as 'course_recommendation_system.db'")
 
 
 if __name__ == "__main__":
