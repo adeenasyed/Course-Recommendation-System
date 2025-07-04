@@ -1,4 +1,9 @@
 import sqlite3
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+DB_PATH = os.getenv('DB_PATH')
 
 class ProgramsSeed:
     def __init__(self):
@@ -503,7 +508,7 @@ class ProgramsSeed:
         }
     
     def create_table(self):
-        conn = sqlite3.connect('course_recommendation_system.db')
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         
         cursor.execute('DROP TABLE IF EXISTS programs')
@@ -521,7 +526,7 @@ class ProgramsSeed:
         conn.close()
     
     def populate_table(self):
-        conn = sqlite3.connect('course_recommendation_system.db')
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         
         for program_name, program_info in self.all_programs.items():

@@ -19,6 +19,7 @@ import logging
 
 load_dotenv()
 API_KEY = os.getenv('API_KEY')
+DB_PATH = os.getenv('DB_PATH')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -41,13 +42,12 @@ class Course:
         self.is_pass_fail = self.grading_basis in ["CNC", "NGP", "CNT", "CNW", "CNP", "DRN", "CUR"]
 
 class Database:
-    def __init__(self, db_path: str = "course_recommendation_system.db"):
-        self.db_path = db_path
+    def __init__(self):
         self.create_tables()
     
     @contextmanager
     def get_connection(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(DB_PATH)
         try:
             yield conn
         finally:
