@@ -1,110 +1,112 @@
-"""
-You are a course requirement parser. Extract requirements and represent them as logical groups.
+PROMPT_TEMPLATE = """IMPORTANT: You must only respond with valid JSON and nothing else. No explanations, no markdown, no extra text.
+
+You are a course requirement parser. Extract requirements and represent them as logical groups. Do not infer requirements. Only extract requirements that are explicitly stated.
 
 PARSING RULES:
 1. "PROGRAM" reqs:
-   - If ALLOWED programs exist, only those programs are allowed (ignore NOT_ALLOWED programs)
-   - If no ALLOWED programs exist, then use NOT_ALLOWED programs
+   - IMPORTANT: Multiple programs are always OR conditions
+   - Only use these exact program names for values: #programs_list#
    - Operators: "=" (ALLOWED) or "!=" (NOT_ALLOWED)
 
-2. "FACULTY" reqs:
-   - Same logic as programs, ALLOWED takes priority over NOT_ALLOWED
-   - Operators: "=" (ALLOWED) or "!=" (NOT_ALLOWED)
-
-3. "LEVEL" reqs:
+2. "LEVEL" reqs:
+   - Only use these exact levels for values: 1A, 1B, 2A, 2B, 3A, 3B, 4A, 4B
    - Operators: "=" (exact level) or ">=" (minimum level)
 
-4. "MINOR" reqs:
+3. "MINOR" reqs:
    - Always use "=" operator
-   - Multiple minors are always OR conditions (any one qualifies)
-   - Look for terms "minor" and "option"
+   - Look for the term "option"
 
-5. Handling for the term "major":
-   - Treat it as a PROGRAM
+4. Return null when:
+   - There is no information that we are interested in (e.g., only prerequisites/antirequisites/corequisites/grades are mentioned)
 
-8. Handling for the term "honours":
-   - Ignore "Honours" prefixes in program names
-
-8. Ignore any information (e.g., course reqs, milestone reqs) that is not related to the above categories
-
-9. Structure:
-   - Simple requirements: single "AND" group
-   - Multiple options: OR group with AND sub-groups
-
-INPUT: "{requirements_description}"
+5. Structure rules:
+   - For simple cases like "A or B students", use simple OR with direct conditions
+   - For complex cases like "Level 2B Management Engineering or Systems Design Engineering students", use OR with AND subgroups only when needed
+   - Do not create unnecessary nested structures
 
 OUTPUT FORMAT:
 {
-  "requirements": [
-    {
+  "course": {
       "operator": "AND" | "OR",
       "conditions": [
         {
-          "type": "PROGRAM" | "FACULTY" | "LEVEL" | "MINOR",
+          "type": "PROGRAM" | "LEVEL" | "MINOR",
           "operator": "=" | "!=" | ">=",
           "value": "specific value"
         }
       ]
-    }
-  ] or null
+  } or null
 }
 
 EXAMPLES:
 
-Input: "Prereq: MATH 116; Level at least 2B Civil Engineering. Antireq: MSE 261, SYDE 262"
+Requirements Description: "Prereq: MATH 116; Level at least 2B Civil Engineering. Antireq: MSE 261, SYDE 262"
 Output: {
-  "requirements": {
-      "operator": "AND",
-      "conditions": [
-        {"type": "LEVEL", "operator": ">=", "value": "2B"},
-        {"type": "PROGRAM", "operator": "=", "value": "Civil Engineering"}
-      ]
-  }
-}
-
-Input: "Not open to Arts and Business students. Antireq: AFM 132, BUS 111W"
-Output: {
-  "requirements": {
+  "CIVE 392": {
     "operator": "AND",
     "conditions": [
-      {"type": "PROGRAM", "operator": "!=", "value": "Arts and Business"}
+      {"type": "LEVEL", "operator": ">=", "value": "2B"},
+      {"type": "PROGRAM", "operator": "=", "value": "Civil Engineering"}
     ]
   }
 }
 
-Input: "Prereq: Level at least 2B Architecture students or Honours Environment and Business students"
+Requirements Description: "Prereq: One of BIOL 273, BME 284, SYDE 384/584; Level at least 3A Biomedical Engineering or Level at least 3B Systems Design Engineering or Level at least 3B Honours Life Sciences (Biophysics Specialization). Antireq: SYDE 544"
 Output: {
-  "requirements": {
+  "BME 544": {
     "operator": "OR",
     "conditions": [
       {
-          "operator": "AND",
-          "conditions": [
-            {"type": "LEVEL", "operator": "=", "value": "2B"},
-            {"type": "PROGRAM", "operator": "=", "value": "Architecture"}
-          ]
+        "operator": "AND",
+        "conditions": [
+          {"type": "LEVEL", "operator": ">=", "value": "3A"},
+          {"type": "PROGRAM", "operator": "=", "value": "Biomedical Engineering"}
+        ]
       },
-      {"type": "PROGRAM", "operator": "=", "value": "Environment and Business"}
+      {
+        "operator": "AND",
+        "conditions": [
+          {"type": "LEVEL", "operator": ">=", "value": "3B"},
+          {"type": "PROGRAM", "operator": "=", "value": "Systems Design Engineering"}
+        ]
+      }
     ]
   }
+}
 
-Input: "Prereq: MUSIC 100 or 110; 227, 270; Music majors and minors. Coreq: One of MUSIC 116, 117, 216, 217, 316, 317, 416, 417"
+Requirements Description: "Prereq: GENE 123; Level at least 2A Mechanical Engineering or Mechatronics Option"
 Output: {
-"requirements": {
+  "ME 269": {
     "operator": "OR",
     "conditions": [
-      {"type": "PROGRAM", "operator": "=", "value": "Music"},
-      {"type": "MINOR", "operator": "=", "value": "Music"}
+      {
+        "operator": "AND",
+        "conditions": [
+          {"type": "LEVEL", "operator": ">=", "value": "2A"},
+          {"type": "PROGRAM", "operator": "=", "value": "Mechanical Engineering"}
+        ]
+      },
+      {
+        "operator": "OR",
+        "conditions": [
+          {"type": "MINOR", "operator": "=", "value": "Mechatronics"}
+        ]
+      }
     ]
   }
+}
 
-Input: "Prereq: MUSIC 217; audition required"
+Requirements Description: "Prereq: (ME 360; Mechanical Eng/Mechatronics Option) or (SYDE 352; Systems Design Eng/Mechatronics Option). Antireq: ECE 481, MTE 484"
 Output: {
-    null
+  "ECE 484": {
+    "operator": "OR",
+    "conditions": [
+      {"type": "PROGRAM", "operator": "=", "value": "Mechanical Engineering"},
+      {"type": "MINOR", "operator": "=", "value": "Mechatronics"},
+      {"type": "PROGRAM", "operator": "=", "value": "Systems Design Engineering"}
+    ]
+  }
 }
 
-}
-
-Parse the following requirement description:
-
-"""
+Parse the following requirements description for #course#. RESPOND WITH ONLY A JSON OBJECT:
+#requirements_description#"""
