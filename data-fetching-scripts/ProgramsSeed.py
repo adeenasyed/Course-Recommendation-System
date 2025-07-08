@@ -542,9 +542,63 @@ class ProgramsSeed:
         self.create_table()
         self.populate_table()
 
+class MinorsSeed:
+    def __init__(self):
+        # add more later
+        self.all_minors = {
+            "Artificial Intelligence",
+            "Biomechanics",
+            "Computer Engineering",
+            "Computing",
+            "Entrepreneurship",
+            "Environmental Engineering",
+            "Life Sciences",
+            "Management Science",
+            "Mechatronics",
+            "Physical Sciences",
+            "Quantum Engineering",
+            "Software Engineering",
+            "Statistics"
+        }
+    
+    def create_table(self):
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('DROP TABLE IF EXISTS minors')
+        
+        cursor.execute('''
+            CREATE TABLE minors (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+    
+    def populate_table(self):
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        for minor_name in self.all_minors:
+            cursor.execute('''
+                INSERT INTO minors name VALUE ?
+            ''', (minor_name))
+        
+        conn.commit()
+        conn.close()
+    
+    def run(self):
+        self.create_table()
+        self.populate_table()
+
 def main():
     programs_seed = ProgramsSeed()
     programs_seed.run()
+
+    minors_seed = MinorsSeed()
+    minors_seed.run()
 
 if __name__ == "__main__":
     main()

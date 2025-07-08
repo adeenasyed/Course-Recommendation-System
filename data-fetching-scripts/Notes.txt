@@ -16,7 +16,7 @@ Data Cleaning Notes
     - Courses with gradingBasis "NON", "XTR", "NGD"
 
 ✅ Add column to indicate whether a course is pass/fail
-    - Courses with gradingBasis "CNC", "NGP", "CNT", "CNW", "CNP", "DRN", "CUR"
+    - Courses with gradingBasis "CNC", "NGP", "CNT", "CNW", "CNP", "DRN", "CUR", "NAN
 
 
 General Notes
@@ -31,7 +31,3 @@ General Notes
     - DIS: discussion
     - ENS: ensemble (music courses)
     - FLT: flight (aviation courses)
-
-
-Questions:
-    - What is grading basis NAN?

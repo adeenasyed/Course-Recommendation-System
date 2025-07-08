@@ -13,6 +13,7 @@ PARSING RULES:
    - Operators: "=" (exact level) or ">=" (minimum level)
 
 3. "MINOR" reqs:
+   - IMPORTANT: When minors are present, they should be treated as separate OR conditions at the top level
    - Always use "=" operator
    - Look for the term "option"
 
@@ -86,12 +87,7 @@ Output: {
           {"type": "PROGRAM", "operator": "=", "value": "Mechanical Engineering"}
         ]
       },
-      {
-        "operator": "OR",
-        "conditions": [
-          {"type": "MINOR", "operator": "=", "value": "Mechatronics"}
-        ]
-      }
+      {"type": "MINOR", "operator": "=", "value": "Mechatronics"}
     ]
   }
 }
