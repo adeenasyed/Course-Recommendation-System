@@ -73,7 +73,7 @@ class RequirementsProcessor:
             SELECT code, requirements_description, subject
             FROM courses 
             WHERE requirements_description IS NOT NULL
-            AND SUBJECT IN ('ARCH', 'BME', 'CHE', 'ECE', 'ENVE', 'GENE', 'GEOE', 'ME', 'MSE', 'MTE', 'NE', 'SE', 'SYDE') 
+            AND SUBJECT IN ('AE', 'ARCH', 'BME', 'CHE', 'ECE', 'ENVE', 'GENE', 'GEOE', 'ME', 'MSE', 'MTE', 'NE', 'SE', 'SYDE') 
             ORDER BY code
         """)
         

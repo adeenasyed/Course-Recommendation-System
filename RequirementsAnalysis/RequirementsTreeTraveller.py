@@ -81,7 +81,7 @@ class RequirementsTreeTraveller:
         cursor.execute("""
             SELECT code
             FROM courses
-            WHERE SUBJECT IN ('ARCH', 'BME', 'CHE', 'ECE', 'ENVE', 'GENE', 'GEOE', 'ME', 'MSE', 'MTE', 'NE', 'SE', 'SYDE') 
+            WHERE SUBJECT IN ('AE', 'ARCH', 'BME', 'CHE', 'ECE', 'ENVE', 'GENE', 'GEOE', 'ME', 'MSE', 'MTE', 'NE', 'SE', 'SYDE') 
             ORDER BY code
         """)
         return [row[0] for row in cursor.fetchall()]
