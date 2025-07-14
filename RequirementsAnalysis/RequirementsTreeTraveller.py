@@ -37,7 +37,7 @@ class RequirementsTreeTraveller:
             # logger.info(f"Loaded {len(programs)} valid programs from database")
             return programs
     
-    def get_available_courses(self, program: str, term: str, minor: Optional[str] = None) -> List[str]:
+    def get_available_courses(self, program: str, term: str, minor: Optional[str] = None) -> List[Dict]:
         """
         Get all courses that a person can take based on their program, term (e.g. '2A'), and optional minor.
         
@@ -47,7 +47,7 @@ class RequirementsTreeTraveller:
             minor: Optional minor name (e.g., "Mechatronics")
         
         Returns:
-            List of course codes that the person can take
+            List of course dictionaries with full information
         """
         if not self._validate_inputs(program, term, minor):
             return []
@@ -61,13 +61,35 @@ class RequirementsTreeTraveller:
             for course in courses_with_reqs:
                 can_take = self._can_take_course(conn, course, program, level, minor)
                 if can_take:
-                    available_courses.append(course)
+                    # Get full course information from database
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT code, title, description
+                        FROM courses 
+                        WHERE code = ?
+                    """, (course,))
+                    
+                    row = cursor.fetchone()
+                    if row:
+                        code, title, description = row
+                        available_courses.append({
+                            'code': code,
+                            'title': title or f'{code} Course',
+                            'description': description or f'Description for {code}'
+                        })
+                    else:
+                        # Fallback if course not found in database
+                        available_courses.append({
+                            'code': course,
+                            'title': f'{course} Course',
+                            'description': f'Description for {course}'
+                        })
             
             # logger.info(f"Found {len(available_courses)} available courses for {program} student in term {term} (level {level})")
             # if minor:
             #     logger.info(f"Minor: {minor}")
             
-            return sorted(available_courses)
+            return sorted(available_courses, key=lambda x: x['code'])
     
     def _validate_inputs(self, program: str, term: str, minor: Optional[str]) -> bool:
         """Validate input parameters."""
